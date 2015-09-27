@@ -5,7 +5,7 @@ function [curve, sigma_ret, sigma_true] = opt4(sigma_a0)
 
 global fem Q sigma_s sigma_a u load counter sigma_rate M alpha
 % initialize fem 
-fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/8000, []', 2);
+fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/20000, []', 2);
 
 alpha = 1e-5;
 
@@ -44,7 +44,7 @@ sigma_a = (0.1 * (1.0 + 0.05 .* (nodes(1, :) > 0.5) .* (nodes(2, :) > 0.5) .* (n
 M = fem.assema(1);
 
 if nargin < 1
-    sigma_a0 = sigma_a .* (1 + 2 * (rand(size(sigma_a)) - 0.5));
+    sigma_a0 = 0. .* (1 + 2 * (rand(size(sigma_a)) - 0.5));
 end
 % sigma_a0 = 0.06* ones(n, 1);
 
@@ -85,7 +85,7 @@ lb  = zeros(size(sigma_a0));  % Lower bound on the variables.
 ub  = ones(size(sigma_a0));  % Upper bound on the variables.
 
 sigma_ret = lbfgsb(sigma_a0,lb,ub,'data4','data_grad4',...
-           [],'genericcallback','maxiter',1e4,'m',4,'factr',1e-12,...
+           [],'callback','maxiter',1e4,'m',8,'factr',1e-12,...
            'pgtol',1e-12);
 
 fprintf('Relative L2 error of sigma_a is %6.2f \n', norm(sigma_ret - sigma_a)/norm(sigma_a));
