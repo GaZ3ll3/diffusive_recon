@@ -3,7 +3,7 @@ function [curve, sigma_ret, sigma_true] = opt4(sigma_a0)
 % d is degree of element
 
 
-global fem Q sigma_s sigma_a u load counter sigma_rate M alpha
+global fem Q sigma_s sigma_a u u1 load counter sigma_rate M alpha
 % initialize fem 
 fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/20000, []', 2);
 
@@ -63,10 +63,10 @@ qsigma_a = focus_mapping(sigma_a, fem.Promoted.elems, fem.Facet.Ref');
 DSA = fem.assems((1/3)./qsigma_t) + fem.assema(qsigma_a) + 0.5 * Q;
 u = DSA\load;
 
-u = u .* sigma_a;
+u1 = u .* sigma_a;
 
 % add some noise
-u = u .* (1 + 0.05 * 2 * (rand(size(u)) - 0.5));
+u1 = u1 .* (1 + 0.05 * 2 * (rand(size(u)) - 0.5));
 
 % options = optimoptions('fminunc','Display','off','Algorithm',...
 %     'quasi-newton', 'HessUpdate', 'bfgs', 'GradObj','On', 'MaxIter', 3000, 'TolFun',...
@@ -84,6 +84,7 @@ u = u .* (1 + 0.05 * 2 * (rand(size(u)) - 0.5));
 lb  = zeros(size(sigma_a0));  % Lower bound on the variables.
 ub  = ones(size(sigma_a0));  % Upper bound on the variables.
 
+
 sigma_ret = lbfgsb(sigma_a0,lb,ub,'data4','data_grad4',...
            [],'callback','maxiter',1e4,'m',8,'factr',1e-12,...
            'pgtol',1e-12);
@@ -97,8 +98,6 @@ qsigma_a = focus_mapping(sigma_ret, fem.Promoted.elems, fem.Facet.Ref');
 
 T = fem.assems((1/3)./qsigma_t) + fem.assema(qsigma_a) + 0.5 * Q;
 v = T\load;
-
-v = sigma_ret .* v;
 
 fprintf('Relateive L2 error of u is %6.2f \n', norm(u - v)/norm(u));
 

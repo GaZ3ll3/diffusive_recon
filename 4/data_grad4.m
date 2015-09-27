@@ -1,5 +1,5 @@
 function [g] =  data_grad4(sigma_a_)
-global fem u load sigma_s Q M alpha
+global fem u u1 load sigma_s Q M alpha
 
 sigma_t_ = sigma_a_ + sigma_s;
 
@@ -12,11 +12,11 @@ v = T\load;
 
 mv = sigma_a_ .* v;
 
-tmp = T\(sigma_a_ .* (M * (u - mv)));
+tmp = T\(sigma_a_ .* (M * (u1 - mv)));
 
 [~, h] = reg4(sigma_a_);
 
 g = fem.assemnode(tmp, u, -1/3./sigma_t_./sigma_t_, ones(size(sigma_t_))) + ...
-    -v .* (M * (u - mv))+ alpha * h;
+    -v .* (M * (u1 - mv))+ alpha * h;
 
 end
