@@ -7,8 +7,8 @@ global fem Q sigma_s sigma_a Gamma u_1 u_2 u1 u2 load_1 load_2 counter sigma_rat
 % initialize fem 
 fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/4000, []', 2);
 
-alpha = 1e-4;
-beta_ = 1e-4;
+alpha = 1e-6;
+beta_ = 1e-6;
 
 sigma_rate = [];
 gamma_rate = [];
@@ -40,27 +40,27 @@ nodes = fem.Promoted.nodes;
 sigma_s = 20.0 ;
 
 % initial sigma_a
-sigma_a = 0.5 + 0.2 * (nodes(1,:) - nodes(2, :))';
-% sigma_a = (0.1 * (1.0 + 0.05 .* (nodes(1, :) > 0.5) .* (nodes(2, :) > 0.5) .* (nodes(1,:) < 0.75) .* (nodes(2, :) < 0.75) +...
-%     0.15 .* (nodes(1,:) < 0.4) .*(nodes(2, :) < 0.4) .* (nodes(1,:) > 0.2) .* (nodes(2, :) > 0.2)))';
+% sigma_a = 0.5 + 0.2 * (nodes(1,:) - nodes(2, :))';
+sigma_a = (0.1 * (1.0 + 0.05 .* (nodes(1, :) > 0.5) .* (nodes(2, :) > 0.5) .* (nodes(1,:) < 0.75) .* (nodes(2, :) < 0.75) +...
+    0.15 .* (nodes(1,:) < 0.4) .*(nodes(2, :) < 0.4) .* (nodes(1,:) > 0.2) .* (nodes(2, :) > 0.2)))';
 M = fem.assema(1);
 
-Gamma = 1.0  + 0.2 * (nodes(2, :) - nodes(1,:))';
-% Gamma = 0.5 * ones(size(sigma_a, 1), 1) +...
-%     (0.05 .* (nodes(1, :) > 0.5) .* (nodes(2, :) > 0.5) .* (nodes(1,:) < 0.75) .* (nodes(2, :) < 0.75))';
+% Gamma = 1.0  + 0.2 * (nodes(2, :) - nodes(1,:))';
+Gamma = 0.5 * ones(size(sigma_a, 1), 1) +...
+    (0.05 .* (nodes(1, :) > 0.5) .* (nodes(2, :) > 0.5) .* (nodes(1,:) < 0.75) .* (nodes(2, :) < 0.75))';
 
 if nargin < 1
-    sigma_a0 = 0.5 .* (1 + 0.2 * (rand(size(sigma_a)) - 0.5));
-    Gamma_0 = 1.0 .* (1 + 0.2 * (rand(size(sigma_a)) - 0.5));
+    sigma_a0 = sigma_a.* (1 + 0.2 * (rand(size(sigma_a)) - 0.5));
+    Gamma_0 = Gamma .* (1 + 0.2 * (rand(size(sigma_a)) - 0.5));
 end
 % sigma_a0 = 0.06* ones(n, 1);
 
 % initialize load vector, multiple sources.
-source_fcn_1 = @ring;
+source_fcn_1 = @SinSource;
 source_q_nodes_1 = source_fcn_1(fem.Qnodes(1,:), fem.Qnodes(2,:));
 load_1 = fem.asseml(source_q_nodes_1);
 
-source_fcn_2 = @period;
+source_fcn_2 = @CosSource;
 source_q_nodes_2 = source_fcn_2(fem.Qnodes(1,:), fem.Qnodes(2,:));
 load_2 = fem.asseml(source_q_nodes_2);
 
@@ -124,8 +124,8 @@ v1 = sigma_ret .* v1 .* Gamma_ret;
 v2 = sigma_ret .* v2 .* Gamma_ret;
 
 fprintf('Relateive L2 error of u are %6.2f, %6.2f \n',...
-    norm(u1 - v1)/norm(u1),...
-    norm(u2 - v2)/norm(u2));
+    norm(u1 - v1, infty)/norm(u1, infty),...
+    norm(u2 - v2, infty)/norm(u2, infty));
 
 figure(1);
 plot(sigma_rate);
@@ -167,4 +167,12 @@ numofnodes = size(fem.Promoted.nodes, 2);
 trimesh(fem.TriMesh', fem.Promoted.nodes(1,1:numofnodes), ...
     fem.Promoted.nodes(2, 1:numofnodes), sigma(1:numofnodes));colorbar;colormap jet;
 
+end
+
+function val = SinSource(x, y)
+    val = 10 * (0.2 + sin(pi/4 * ((x - 0.5).^2 + (y - 0.5).^2)));
+end
+
+function val = CosSource(x, y)
+    val = 10 * cos(pi/4 * ((x - 0.5).^2 + (y - 0.5).^2));
 end
