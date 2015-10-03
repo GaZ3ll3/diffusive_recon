@@ -1,4 +1,6 @@
-classdef opt6 < handle
+classdef opt8 < handle
+    %OPT8 Summary of this class goes here
+    %   Detailed explanation goes here
     
     properties(Access = public)
         fem
@@ -30,6 +32,10 @@ classdef opt6 < handle
         % optimization
         rate
         alpha
+        
+        
+        % quotient
+        quotient
     end
     
     properties(Access = private)
@@ -39,16 +45,15 @@ classdef opt6 < handle
         data_local
         sols_local
         
-
+        quotient_local
     end
     
-    
     methods
-        function this = opt6()
+        function this = opt8()
             % constructor
             
             % finite element with out pml.
-            this.fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/4000, []', 2);
+            this.fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/4000, []', 3);
             
             boundary = Boundary();
             boundary.set_boundary('x - 1');
@@ -56,7 +61,8 @@ classdef opt6 < handle
             boundary.set_boundary('x');
             boundary.set_boundary('y');
 
-            [bc1, bc2, bc3, bc4] = boundary.get_boundary(this.fem.Promoted.edges, this.fem.Promoted.nodes, 4);
+            [bc1, bc2, bc3, bc4] = boundary.get_boundary(...
+                this.fem.Promoted.edges, this.fem.Promoted.nodes, 4);
 
             boundary.setDirichlet(bc1);
             boundary.setDirichlet(bc2);
@@ -64,7 +70,8 @@ classdef opt6 < handle
             boundary.setDirichlet(bc4);
 
             % boundary integral term, constant
-            this.Edge = this.fem.assemlbc(1, bc1) + this.fem.assemlbc(1, bc2) + this.fem.assemlbc(1, bc3) + this.fem.assemlbc(1, bc4);
+            this.Edge = this.fem.assemlbc(1, bc1) + this.fem.assemlbc(1, bc2) +...
+                this.fem.assemlbc(1, bc3) + this.fem.assemlbc(1, bc4);
             % matrix
             this.Mass = this.fem.assema(1);
             this.Stiff = this.fem.assems(1);
@@ -72,8 +79,8 @@ classdef opt6 < handle
             this.source{1} = @this.SinSource;
             this.source{2} = @this.CosSource;
             
-            this.alpha{1} = 1e-8;
-            this.alpha{2} = 1e-8;
+            this.alpha{1} = 5e-9;
+            this.alpha{2} = 5e-9;
             
             this.rate = {[], []};
             
@@ -81,11 +88,14 @@ classdef opt6 < handle
             % variable
             this.sigma_a = this.SigmaFcn(nodes(1,:), nodes(2,:));
             this.gamma   = this.GammaFcn(nodes(1,:), nodes(2,:));
-            this.sigma_s = 1.0;
+            this.sigma_s = 20.0;
 
             % initials
-            this.sigma_a_0 = this.sigma_a .* ( 1 + 0.2 * (rand(size(this.sigma_a)) - 0.5));
+            %this.sigma_a_0 = this.sigma_a .* ( 1 + 0.4 * (rand(size(this.sigma_a)) - 0.5));
+            %this.sigma_a_0 = 0.1 * ones(size(this.sigma_a));
+            this.sigma_a_0 = this.sigma_a;
             this.gamma_0   = this.gamma .* (1 + 0.2 * (rand(size(this.gamma)) - 0.5));
+            
             
             this.load{1} = this.fem.asseml(this.source{1}(this.fem.Qnodes(1, :), this.fem.Qnodes(2, :)));
             this.load{2} = this.fem.asseml(this.source{2}(this.fem.Qnodes(2, :), this.fem.Qnodes(2, :)));
@@ -102,16 +112,17 @@ classdef opt6 < handle
             this.data{1} = this.sols{1} .* this.gamma .* this.sigma_a;
             this.data{2} = this.sols{2} .* this.gamma .* this.sigma_a;
             
-        end
-        
-        function delete(this)
-            % override destructor
-            this.fem.delete();
+            
+            % data for reconstructing sigma_a
+            this.quotient = this.data{1}.*(1 + 0.001 * (rand(size(this.sigma_a))- 0.5)) ./...
+                this.data{2};
+            
         end
         
         function [f, g] = objective_gradient(this, ret)
-            this.sigma_a_local = ret(1:end/2);
-            this.gamma_local   = ret(end/2 + 1: end);
+            % extract information
+            this.sigma_a_local = ret;
+            %this.gamma_local   = ret(end/2 + 1: end);
             
             sigma_t = this.sigma_a_local + this.sigma_s;
             
@@ -123,46 +134,38 @@ classdef opt6 < handle
             this.sols_local{1} = DSA\this.load{1};
             this.sols_local{2} = DSA\this.load{2};
             
-            this.data_local{1} = this.sols_local{1} .* this.sigma_a_local .* this.gamma_local;
-            this.data_local{2} = this.sols_local{2} .* this.sigma_a_local .* this.gamma_local;
+            % quotient data
+            this.quotient_local = this.sols_local{1} ./ this.sols_local{2};
             
-            tmp{1} = DSA\(this.sigma_a_local .* (this.Mass * (this.data{1} - this.data_local{1})));
-            tmp{2} = DSA\(this.sigma_a_local .* (this.Mass * (this.data{2} - this.data_local{2})));
+            carry = this.Mass * (this.quotient - this.quotient_local);
+            
+            tmp{1} = DSA\( carry .* this.sols_local{1} ./ this.sols_local{2} ./this.sols_local{2});
+            tmp{2} = DSA\( carry ./ this.sols_local{2});
                         
             r{1} = 0.5 * this.sigma_a_local' * this.Stiff * this.sigma_a_local;
             h{1} = this.Stiff * this.sigma_a_local;
-            r{2} = 0.5 * this.gamma_local' * this.Stiff * this.gamma_local;
-            h{2} = this.Stiff * this.gamma_local;
+%             r{2} = 0.5 * this.gamma_local' * this.Stiff * this.gamma_local;
+%             h{2} = this.Stiff * this.gamma_local;
             
-            g{1} = this.gamma_local .* ...
-                (...
-                this.fem.assemnode(tmp{1}, this.sols{1}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) - ... 
-                this.sols_local{1} .* (this.Mass * (this.data{1} - this.data_local{1})) + ...
-                this.fem.assemnode(tmp{2}, this.sols{2}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) - ...
-                this.sols_local{2} .* (this.Mass * (this.data{2} - this.data_local{2})) ...
-                ) + this.alpha{1} * h{1}; 
-            g{2} = - (this.sigma_a_local .* this.sols{1}) .* (this.Mass * (this.data{1} - this.data_local{1})) - ...
-                (this.sigma_a_local .* this.sols{2}) .* (this.Mass * (this.data{2} - this.data_local{2})) + ...
-                this.alpha{2} * h{2};
-            
-            g = [g{1}; g{2}];  
+            g = - this.fem.assemnode(tmp{1}, this.sols{2}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) +...
+                this.fem.assemnode(tmp{2}, this.sols{1}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) + ...
+                this.alpha{1} * h{1};
 
-            f = 0.5 * (this.data{1} - this.data_local{1})' * this.Mass * (this.data{1} - this.data_local{1}) + ...
-                0.5 * (this.data{2} - this.data_local{2})' * this.Mass * (this.data{2} - this.data_local{2}) + ...
-                this.alpha{1} * r{1} + this.alpha{2} * r{2};
+            f = 0.5 * (this.quotient - this.quotient_local)' * this.Mass * (this.quotient - this.quotient_local) +...
+                this.alpha{1} * r{1};
             
-            this.rate{1} = [this.rate{1}, norm(this.sigma_a - this.sigma_a_local, inf)];
-            this.rate{2} = [this.rate{2}, norm(this.gamma - this.gamma_local, inf)];
+            this.rate{1} = [this.rate{1}, norm((this.sigma_a - this.sigma_a_local)./this.sigma_a, inf)];
+            this.rate{2} = [this.rate{2}, norm(this.sols_local{1} .* this.sigma_a_local ./(this.sols{1} .* this.sigma_a), inf) - 1];
         end
-        
-
-        
+ 
         function optimize(this,start)
-            %start = [this.sigma_a_0; this.gamma_0];
-             
+            
+            if (nargin == 1)
+                start = this.sigma_a_0;
+            end
             options = optimoptions('fminunc','Display','iter','Algorithm',...
-            'quasi-newton', 'HessUpdate', 'bfgs', 'GradObj','On', 'MaxIter', 300, 'TolFun',...
-            1e-12, 'TolX',1e-16,'MaxFunEvals', 1e5, 'DerivativeCheck', 'Off');
+            'quasi-newton', 'HessUpdate', 'bfgs', 'GradObj','On', 'MaxIter', 800, 'TolFun',...
+            1e-20, 'TolX',1e-20,'MaxFunEvals', 1e5, 'DerivativeCheck', 'Off');
 
             problem.options = options;
             problem.x0 = start;
@@ -171,12 +174,12 @@ classdef opt6 < handle
 
             ret = fminunc(problem);
             
-            this.sigma_a_ = ret(1:end/2);
-            this.gamma_   = ret(end/2 + 1: end);
+            this.sigma_a_ = ret;
+        %    this.gamma_   = ret(end/2 + 1: end);
         end
         
         function LBFGS(this, objstr, gradstr, cbstr)
-            start = [this.sigma_a_0; this.gamma_0];
+            start = this.sigma_a_0;
             lb = -5 * ones(size(start));
             ub = 5 * ones(size(start));
             
@@ -184,10 +187,17 @@ classdef opt6 < handle
                     [],cbstr,'maxiter',1e5,'m',12,'factr',1e-12,...
                     'pgtol',1e-16);
        
-            this.sigma_a_ = ret(1:end/2);
-            this.gamma_   = ret(end/2 + 1: end);
+            this.sigma_a_ = ret;
+           % this.gamma_   = ret(end/2 + 1: end);
             
+        end        
+        
+        
+        function delete(this)
+            % override destructor
+            this.fem.delete();
         end
+        
         
         function plot(this)
             
@@ -196,39 +206,36 @@ classdef opt6 < handle
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
             this.fem.Promoted.nodes(2, 1:numofnodes), this.sigma_a_(1:numofnodes),'EdgeColor', 'None');shading interp;
             colorbar;colormap jet;
-            figure(2);
-            trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.gamma_(1:numofnodes),'EdgeColor', 'None');shading interp;
-            colorbar;colormap jet;
+%             figure(2);
+%             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
+%             this.fem.Promoted.nodes(2, 1:numofnodes), this.gamma_(1:numofnodes),'EdgeColor', 'None');shading interp;
+%             colorbar;colormap jet;
         
             figure(3);
             numofnodes = size(this.fem.Promoted.nodes, 2);
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
             this.fem.Promoted.nodes(2, 1:numofnodes), this.sigma_a(1:numofnodes),'EdgeColor', 'None');shading interp;
             colorbar;colormap jet;
-            figure(4);
-            trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.gamma(1:numofnodes),'EdgeColor', 'None');shading interp;
-            colorbar;colormap jet;
+%             figure(4);
+%             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
+%             this.fem.Promoted.nodes(2, 1:numofnodes), this.gamma(1:numofnodes),'EdgeColor', 'None');shading interp;
+%             colorbar;colormap jet;
         
             figure(5);
             numofnodes = size(this.fem.Promoted.nodes, 2);
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
             this.fem.Promoted.nodes(2, 1:numofnodes), this.sigma_a(1:numofnodes) - this.sigma_a_(1:numofnodes)...
             ,'EdgeColor', 'None');shading interp;colorbar;colormap jet;
-            figure(6);
-            trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.gamma(1:numofnodes) -  this.gamma_(1:numofnodes)...
-            ,'EdgeColor', 'None');shading interp;colorbar;colormap jet;
+%             figure(6);
+%             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
+%             this.fem.Promoted.nodes(2, 1:numofnodes), this.gamma(1:numofnodes) -  this.gamma_(1:numofnodes)...
+%             ,'EdgeColor', 'None');shading interp;colorbar;colormap jet;
         
             figure(7);
             plot(this.rate{1});
             figure(8);
             plot(this.rate{2});
         end
-        
-        
-        
     end
     
     methods(Static)
@@ -243,18 +250,20 @@ classdef opt6 < handle
         end
         % sigma_a
         function val = SigmaFcn(x, y)
-            val = (0.1 * (1.0 + 0.05 .* (x > 0.5)...
+            val = (0.2 * (1.0 + 0.25 .* (x > 0.5)...
                 .* (y > 0.5) .* (x < 0.75)...
                 .* (y < 0.75) +...
-                0.15 .* (x < 0.4) .*(y < 0.4)...
+                0.45 .* (x < 0.4) .*(y < 0.4)...
                 .* (x > 0.2) .* (y > 0.2)))';
+%             val = 0.1 * (1.0 + 0.15 * (sin(4 * pi * x) .* sin(4 * pi * y)))';
         end
         %gamma
         function val = GammaFcn(x, y)
             val = 0.5  +...
                 (0.05 .* (x > 0.5) .* ...
                 (y > 0.5) .* (x < 0.75) ...
-                .* (y < 0.75))';           
+                .* (y < 0.75))';
+%             val = 0.5 * (1.0 + 0.2 * (sin(4 * pi * (x + 0.25)) .* sin(4 * pi * y)))';
         end
         % interpolation
         function [interpolate] = mapping(func, elems, trans_ref)
