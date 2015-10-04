@@ -34,8 +34,8 @@ classdef radiative < handle
     
     methods 
         function this = radiative()
-            this.fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/(2 * 40 * 40), []');
-            this.dom = DOM(128);
+            this.fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/(2 * 64 * 64), []');
+            this.dom = DOM(16);
             
             this.dom.rayint(this.fem.Promoted.nodes, this.fem.Promoted.elems, this.fem.Promoted.neighbors);
             this.source = this.source_fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
@@ -43,13 +43,13 @@ classdef radiative < handle
             this.sigma_a = this.Sigma_a_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             this.sigma_s = this.Sigma_s_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             
-            this.alpha = 1e-6;
+            this.alpha = 1e-2;
             this.Mass = this.fem.assema(1);
             this.Stiff =  this.fem.assems(1);
             
-%             this.sigma_a_0 = this.sigma_a .* (1.0 + 0.15* (rand(size(this.sigma_s)) - 0.5));
+            this.sigma_a_0 = this.sigma_a .* (1.0 + 0.8* (rand(size(this.sigma_s)) - 0.5));
 %             this.sigma_s_0 = 5.0 * ones(size(this.sigma_s));
-            this.sigma_a_0 = 0.1 * ones(size(this.sigma_a));
+%             this.sigma_a_0 = 0.1 * ones(size(this.sigma_a));
             
             sigma_t = this.sigma_a + this.sigma_s;
             
@@ -183,7 +183,7 @@ classdef radiative < handle
     methods (Static)
         
         function val = source_fcn(x, y)
-            val = period(x,y);
+            val = 10 + x + y;
         end
         
         function val = Sigma_a_Fcn(x, y)
