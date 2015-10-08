@@ -6,9 +6,13 @@ classdef radiative2 < handle
         fem 
         dom
         
+        % now these are structs
         sol
         sol_
         source
+        
+        data
+        data_
         
         Mass
         Stiff
@@ -38,7 +42,11 @@ classdef radiative2 < handle
             this.dom = DOM(16);
             
             this.dom.rayint(this.fem.Promoted.nodes, this.fem.Promoted.elems, this.fem.Promoted.neighbors);
-            this.source = this.source_fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
+            % two instances of sources
+            this.source{1} = this.source_fcn1(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
+            this.source{2} = this.source_fcn2(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
+            
+            
             
             this.sigma_a = this.Sigma_a_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             this.sigma_s = this.Sigma_s_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
@@ -56,9 +64,11 @@ classdef radiative2 < handle
             m = this.dom.si_build_omp(this.fem.Promoted.nodes, this.fem.Promoted.elems, sigma_t);
             
             
+            % two instances, sensitive ?
+            [this.sol{1},~,~,~,~]= gmres(speye(size(m, 1)) - m' * sparse(1:size(m,1), 1:size(m,1), this.sigma_s), m' * (this.source{1}),10 , 1e-14, 400);
+            [this.sol{2},~,~,~,~]= gmres(speye(size(m, 1)) - m' * sparse(1:size(m,1), 1:size(m,1), this.sigma_s), m' * (this.source{2}),10 , 1e-14, 400);
+            this.data = this.sol{1}./this.sol{2};
             
-            [this.sol,~,~,~,~]= gmres(speye(size(m, 1)) - m' * sparse(1:size(m,1), 1:size(m,1), this.sigma_s), m' * (this.source),10 , 1e-14, 400);
-        
         end
         
         function f = objective(this, ret) 
@@ -67,22 +77,54 @@ classdef radiative2 < handle
             this.m_ = this.dom.si_build_omp(this.fem.Promoted.nodes, this.fem.Promoted.elems, this.sigma_t_);
             this.Q_ = speye(size(this.m_, 1)) - this.m_' * sparse(1:size(this.m_, 1), 1:size(this.m_, 1), this.sigma_s);
             this.Qt_ = speye(size(this.m_, 1)) - this.m_ * sparse(1:size(this.m_, 1), 1:size(this.m_, 1), this.sigma_s);
-            [this.sol_, ~, ~, ~, ~] = gmres(this.Q_, this.m_' * (this.source), 10, 1e-14, 400);
             
+            [this.sol_{1}, ~, ~, ~, ~] = gmres(this.Q_, this.m_' * (this.source{1}), 10, 1e-14, 400);
+            [this.sol_{2}, ~, ~, ~, ~] = gmres(this.Q_, this.m_' * (this.source{2}), 10, 1e-14, 400);
             
+            this.data_ = this.sol_{1} ./this.sol_{2};
+
+               
             r = 0.5 * ret' * this.Stiff * ret;
-            f = 0.5 * (this.sol_ - this.sol)' * this.Mass * (this.sol_ - this.sol) + this.alpha * r;
+            f = 0.5 * (this.data_ - this.data)' * this.Mass * (this.data_ - this.data) + this.alpha * r;
             
         end
         
         function g = gradient(this, ret)
-            tmp = this.Mass * (this.sol_ - this.sol);
-            h = this.Stiff * ret;
-            [L, ~, ~,~,~] = gmres(this.Qt_, tmp, 10, 1e-14, 400); 
             
-            g = this.dom.ray_scatter_grad(this.fem.Promoted.nodes, this.fem.Promoted.elems,...
+            
+            
+            
+            
+            
+            tmp = this.Mass * (this.data_ - this.data);
+            
+            tmp1 = tmp./this.sol_{2};
+            tmp2 = tmp.*this.data_./this.sol_{2};
+            
+            h = this.Stiff * ret;
+            [L1, ~, ~,~,~] = gmres(this.Qt_, tmp1, 10, 1e-14, 400); 
+            [L2, ~, ~,~,~] = gmres(this.Qt_, tmp2, 10, 1e-14, 400); 
+            
+            g1 = this.dom.ray_scatter_grad(this.fem.Promoted.nodes, this.fem.Promoted.elems,...
                 ...
-                 L,(this.source + this.sigma_s .* this.sol_), this.sigma_t_) + this.alpha *h;
+                 L1,(this.source{1} + this.sigma_s .* this.sol_{1}), this.sigma_t_);
+             
+            g2 = this.dom.ray_scatter_grad(this.fem.Promoted.nodes, this.fem.Promoted.elems,...
+                ...
+                 L2,(this.source{2} + this.sigma_s .* this.sol_{2}), this.sigma_t_);
+             
+            g = g1 - g2 + this.alpha * h;
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
         end
         
         function [f, g] = objective_gradient(this, ret)
@@ -205,8 +247,12 @@ classdef radiative2 < handle
     
     methods (Static)
         
-        function val = source_fcn(x, y)
+        function val = source_fcn1(x, y)
             val = 10 + x + y;
+        end
+        
+        function val = source_fcn2(x, y)
+           val = 5 + 8 * ((x - 0.5) .^ 2 + (y - 0.5) .^2); 
         end
         
         function val = Sigma_a_Fcn(x, y)
