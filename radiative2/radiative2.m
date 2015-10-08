@@ -51,7 +51,7 @@ classdef radiative2 < handle
             this.sigma_a = this.Sigma_a_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             this.sigma_s = this.Sigma_s_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             
-            this.alpha = 1e-10;
+            this.alpha = 1e-14;
             this.Mass = this.fem.assema(1);
             this.Stiff =  this.fem.assems(1);
             
