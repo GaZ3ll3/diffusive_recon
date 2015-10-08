@@ -51,7 +51,7 @@ classdef radiative2 < handle
             this.sigma_a = this.Sigma_a_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             this.sigma_s = this.Sigma_s_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             
-            this.alpha = 1e-5;
+            this.alpha = 1e-10;
             this.Mass = this.fem.assema(1);
             this.Stiff =  this.fem.assems(1);
             
@@ -203,11 +203,11 @@ classdef radiative2 < handle
             colorbar;colormap jet;
             figure(3);
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.sol(1:numofnodes),'EdgeColor', 'None');shading interp;
+            this.fem.Promoted.nodes(2, 1:numofnodes), this.data(1:numofnodes),'EdgeColor', 'None');shading interp;
             colorbar;colormap jet;
             figure(4);
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.sol_(1:numofnodes),'EdgeColor', 'None');shading interp;
+            this.fem.Promoted.nodes(2, 1:numofnodes), this.data_(1:numofnodes),'EdgeColor', 'None');shading interp;
             colorbar;colormap jet;
         end
         
@@ -229,15 +229,15 @@ classdef radiative2 < handle
             colorbar;colormap jet;view(2);
             subplot(2, 3, 4);
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.sol(1:numofnodes),'EdgeColor', 'None');shading interp;
+            this.fem.Promoted.nodes(2, 1:numofnodes), this.data(1:numofnodes),'EdgeColor', 'None');shading interp;
             colorbar;colormap jet;view(2);title('solution from $\tilde{\sigma}_a$', 'Interpreter', 'latex');
             subplot(2, 3, 5);
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.sol_(1:numofnodes),'EdgeColor', 'None');shading interp;
+            this.fem.Promoted.nodes(2, 1:numofnodes), this.data_(1:numofnodes),'EdgeColor', 'None');shading interp;
             colorbar;colormap jet;view(2);title('solution from ${\sigma}_a$', 'Interpreter', 'latex');
             subplot(2, 3, 6);
             trisurf(this.fem.TriMesh', this.fem.Promoted.nodes(1,1:numofnodes), ...
-            this.fem.Promoted.nodes(2, 1:numofnodes), this.sol_(1:numofnodes) - this.sol(1:numofnodes),...
+            this.fem.Promoted.nodes(2, 1:numofnodes), this.data_(1:numofnodes) - this.data(1:numofnodes),...
             'EdgeColor', 'None');shading interp;
             colorbar;colormap jet;view(2);title('error of solutions', 'Interpreter', 'latex');
             
