@@ -1,4 +1,4 @@
-classdef radiative < handle
+classdef radiative2 < handle
     %OPT Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -33,7 +33,7 @@ classdef radiative < handle
     
     
     methods 
-        function this = radiative()
+        function this = radiative2()
             this.fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/(2 * 64 * 64), []');
             this.dom = DOM(16);
             
@@ -225,4 +225,3 @@ classdef radiative < handle
         
     end
 end
-
