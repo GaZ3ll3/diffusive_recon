@@ -43,13 +43,13 @@ classdef radiative < handle
             this.sigma_a = this.Sigma_a_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             this.sigma_s = this.Sigma_s_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             
-            this.alpha = 1e-2;
+            this.alpha = 1e-5;
             this.Mass = this.fem.assema(1);
             this.Stiff =  this.fem.assems(1);
             
-            this.sigma_a_0 = this.sigma_a .* (1.0 + 0.8* (rand(size(this.sigma_s)) - 0.5));
+%             this.sigma_a_0 = this.sigma_a .* (1.0 + 0.8* (rand(size(this.sigma_s)) - 0.5));
 %             this.sigma_s_0 = 5.0 * ones(size(this.sigma_s));
-%             this.sigma_a_0 = 0.1 * ones(size(this.sigma_a));
+            this.sigma_a_0 = 0.1 * ones(size(this.sigma_a));
             
             sigma_t = this.sigma_a + this.sigma_s;
             
@@ -187,16 +187,17 @@ classdef radiative < handle
         end
         
         function val = Sigma_a_Fcn(x, y)
-            val =(0.1 * (1.0 + 0.45 .* (x > 0.5)...
-                .* (y > 0.5) .* (x < 0.75)...
-                .* (y < 0.75) +...
-                0.45 .* (x < 0.4) .*(y < 0.4)...
-                .* (x > 0.2) .* (y > 0.2)));
+%             val =(0.1 * (1.0 + 0.45 .* (x > 0.5)...
+%                 .* (y > 0.5) .* (x < 0.75)...
+%                 .* (y < 0.75) +...
+%                 0.45 .* (x < 0.4) .*(y < 0.4)...
+%                 .* (x > 0.2) .* (y > 0.2)));  
+            val = 0.1 * (2 + sin(4 * pi * x) .* sin(4 * pi * y));
 %             val = 0.1 * ones(size(x));
         end
         
         function val = Sigma_s_Fcn(x, y)
-             val = 5.0 * ones(size(x));
+            val = 5.0 * ones(size(x));
         end
         
     end
