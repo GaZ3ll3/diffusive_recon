@@ -59,7 +59,7 @@ classdef radiative < handle
             
             [this.sol,~,~,~,~]= gmres(speye(size(m, 1)) - m' * sparse(1:size(m,1), 1:size(m,1), this.sigma_s), m' * (this.source),10 , 1e-14, 400);
   
-            this.sol = this.sol .* (1.0 + 0.04 * (rand(size(this.sol)) - 0.5));
+            this.sol = this.sol .* (1.0 + 0.01 * (rand(size(this.sol)) - 0.5));
             
         end
         
