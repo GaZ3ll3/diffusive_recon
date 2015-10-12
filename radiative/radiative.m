@@ -34,8 +34,8 @@ classdef radiative < handle
     
     methods 
         function this = radiative()
-            this.fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/(2 * 64 * 64), []');
-            this.dom = DOM(16);
+            this.fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/(2 * 32 * 32), []');
+            this.dom = DOM(32);
             
             this.dom.rayint(this.fem.Promoted.nodes, this.fem.Promoted.elems, this.fem.Promoted.neighbors);
             this.source = this.source_fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
@@ -43,13 +43,13 @@ classdef radiative < handle
             this.sigma_a = this.Sigma_a_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             this.sigma_s = this.Sigma_s_Fcn(this.fem.Promoted.nodes(1,:), this.fem.Promoted.nodes(2,:))';
             
-            this.alpha = 1e-5;
+            this.alpha = 1e-4;
             this.Mass = this.fem.assema(1);
             this.Stiff =  this.fem.assems(1);
             
-%             this.sigma_a_0 = this.sigma_a .* (1.0 + 0.8* (rand(size(this.sigma_s)) - 0.5));
+%             this.sigma_a_0 = this.sigma_a .* (1.0 + 0.2* (rand(size(this.sigma_s)) - 0.5));
 %             this.sigma_s_0 = 5.0 * ones(size(this.sigma_s));
-            this.sigma_a_0 = 0.1 * ones(size(this.sigma_a));
+            this.sigma_a_0 = 0.2 * ones(size(this.sigma_a));
             
             sigma_t = this.sigma_a + this.sigma_s;
             
@@ -58,7 +58,9 @@ classdef radiative < handle
             
             
             [this.sol,~,~,~,~]= gmres(speye(size(m, 1)) - m' * sparse(1:size(m,1), 1:size(m,1), this.sigma_s), m' * (this.source),10 , 1e-14, 400);
-        
+  
+            this.sol = this.sol .* (1.0 + 0.04 * (rand(size(this.sol)) - 0.5));
+            
         end
         
         function f = objective(this, ret) 
@@ -120,8 +122,8 @@ classdef radiative < handle
             ub = Inf * ones(size(start));
             
             ret = lbfgsb(start,lb,ub, objstr, gradstr,...
-                    [],cbstr,'maxiter',1e4,'m',50,'factr',1e-16,...
-                    'pgtol',1e-16);
+                    [],cbstr,'maxiter',1e4,'m',50,'factr',1e-12,...
+                    'pgtol',1e-12);
        
             this.sigma_a_ = ret;            
         end    
@@ -215,7 +217,7 @@ classdef radiative < handle
 %                 .* (y < 0.75) +...
 %                 0.45 .* (x < 0.4) .*(y < 0.4)...
 %                 .* (x > 0.2) .* (y > 0.2)));  
-            val = 0.1 * (2 + sin(4 * pi * x) .* sin(4 * pi * y));
+            val = 0.1 * (2 + 0.5 * sin(4 * pi * x) .* sin(4 * pi * y));
 %             val = 0.1 * ones(size(x));
         end
         
