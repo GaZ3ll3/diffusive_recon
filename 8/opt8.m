@@ -79,8 +79,8 @@ classdef opt8 < handle
             this.source{1} = @this.SinSource;
             this.source{2} = @this.CosSource;
             
-            this.alpha{1} = 5e-9;
-            this.alpha{2} = 5e-9;
+            this.alpha{1} = 1e-9;
+            this.alpha{2} = 1e-9;
             
             this.rate = {[], []};
             
@@ -88,13 +88,14 @@ classdef opt8 < handle
             % variable
             this.sigma_a = this.SigmaFcn(nodes(1,:), nodes(2,:));
             this.gamma   = this.GammaFcn(nodes(1,:), nodes(2,:));
-            this.sigma_s = 20.0;
+            this.sigma_s = 10.0;
 
             % initials
             %this.sigma_a_0 = this.sigma_a .* ( 1 + 0.4 * (rand(size(this.sigma_a)) - 0.5));
-            %this.sigma_a_0 = 0.1 * ones(size(this.sigma_a));
-            this.sigma_a_0 = this.sigma_a;
-            this.gamma_0   = this.gamma .* (1 + 0.2 * (rand(size(this.gamma)) - 0.5));
+            this.sigma_a_0 = 0.2 * ones(size(this.sigma_a));
+%             this.sigma_a_0 = this.sigma_a;
+%             this.gamma_0   = this.gamma .* (1 + 0.2 * (rand(size(this.gamma)) - 0.5));
+            this.gamma_0 = 0.5 * ones(size(this.gamma));
             
             
             this.load{1} = this.fem.asseml(this.source{1}(this.fem.Qnodes(1, :), this.fem.Qnodes(2, :)));
@@ -114,7 +115,7 @@ classdef opt8 < handle
             
             
             % data for reconstructing sigma_a
-            this.quotient = this.data{1}.*(1 + 0.001 * (rand(size(this.sigma_a))- 0.5)) ./...
+            this.quotient = this.data{1}.*(1 + 0.01 * (rand(size(this.sigma_a))- 0.5)) ./...
                 this.data{2};
             
         end
@@ -147,8 +148,8 @@ classdef opt8 < handle
 %             r{2} = 0.5 * this.gamma_local' * this.Stiff * this.gamma_local;
 %             h{2} = this.Stiff * this.gamma_local;
             
-            g = - this.fem.assemnode(tmp{1}, this.sols{2}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) +...
-                this.fem.assemnode(tmp{2}, this.sols{1}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) + ...
+            g = - this.fem.assemnode(tmp{1}, this.sols_local{2}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) +...
+                this.fem.assemnode(tmp{2}, this.sols_local{1}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) + ...
                 this.alpha{1} * h{1};
 
             f = 0.5 * (this.quotient - this.quotient_local)' * this.Mass * (this.quotient - this.quotient_local) +...

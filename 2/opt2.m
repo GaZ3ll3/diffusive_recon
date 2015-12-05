@@ -7,7 +7,7 @@ global fem Q sigma_s sigma_a u load counter sigma_rate M alpha
 % initialize fem 
 fem = FEM([0 0 1 0 1 1 0 1]', 1, 1/8000, []', 2);
 
-alpha = 1e-4;
+alpha = 1e-2;
 
 sigma_rate = [];
 counter = 1;
@@ -42,8 +42,8 @@ Y = (nodes(2, fem.Promoted.elems(1, :))' + nodes(2, fem.Promoted.elems(2, :))' +
 sigma_s = 20.0 ;
 
 % initial sigma_a
-sigma_a = 0.1 * (1.0 + 0.05 .* (X > 0.5) .* (Y > 0.5) .* (X < 0.75) .* (Y < 0.75) +...
-    0.15 .* (X < 0.4) .*(Y < 0.4) .* (X > 0.2) .* (Y > 0.2));
+sigma_a = 0.1 * (1.0 + 0.25 .* (X > 0.5) .* (Y > 0.5) .* (X < 0.75) .* (Y < 0.75) +...
+    0.45 .* (X < 0.4) .*(Y < 0.4) .* (X > 0.2) .* (Y > 0.2));
 
 
 if nargin < 1
@@ -63,7 +63,7 @@ u = DSA\load;
 
 M = fem.assema(1);
 % add some noise
-u = u .* (1 + 0.01 * 2 * (rand(size(u)) - 0.5));
+u = u .* (1 + 0.00 * 2 * (rand(size(u)) - 0.5));
 
 % options = optimoptions('fminunc','Display','off','Algorithm',...
 %     'quasi-newton', 'HessUpdate', 'bfgs', 'GradObj','On', 'MaxIter', 3000, 'TolFun',...
@@ -82,7 +82,7 @@ lb  = zeros(size(sigma_a0));  % Lower bound on the variables.
 ub  = ones(size(sigma_a0));  % Upper bound on the variables.
 
 sigma_ret = lbfgsb(sigma_a0,lb,ub,'data2','data_grad2',...
-           [],'genericcallback','maxiter',1e4,'m',4,'factr',1e-12,...
+           [],'genericcallback','maxiter',300,'m',4,'factr',1e-12,...
            'pgtol',1e-12);
 
 fprintf('Relative L2 error of sigma_a is %6.2f percentage \n', norm(sigma_ret - sigma_a)/norm(sigma_a) * 100);

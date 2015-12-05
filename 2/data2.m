@@ -10,7 +10,8 @@ v = T\load;
 
 [r, ~] = reg2(sigma_a_);
 
-f = 0.5 * (u - v)' * M *  (u - v) + alpha * r;
+% f = 0.5 * (u - v)' * M *  (u - v) + alpha * r;
+f = v' * (log(v) - log(u)) + sum(u - v) + alpha * r;
 
 sigma_rate(counter) = norm(sigma_a_ - sigma_a)/norm(sigma_a);
 counter = counter + 1;

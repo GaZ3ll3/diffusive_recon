@@ -72,8 +72,8 @@ classdef opt6 < handle
             this.source{1} = @this.SinSource;
             this.source{2} = @this.CosSource;
             
-            this.alpha{1} = 1e-8;
-            this.alpha{2} = 1e-8;
+            this.alpha{1} = 1e-6;
+            this.alpha{2} = 1e-6;
             
             this.rate = {[], []};
             
@@ -81,11 +81,11 @@ classdef opt6 < handle
             % variable
             this.sigma_a = this.SigmaFcn(nodes(1,:), nodes(2,:));
             this.gamma   = this.GammaFcn(nodes(1,:), nodes(2,:));
-            this.sigma_s = 1.0;
+            this.sigma_s = 10.0;
 
             % initials
-            this.sigma_a_0 = this.sigma_a .* ( 1 + 0.2 * (rand(size(this.sigma_a)) - 0.5));
-            this.gamma_0   = this.gamma .* (1 + 0.2 * (rand(size(this.gamma)) - 0.5));
+            this.sigma_a_0 = this.sigma_a .* ( 1 + 0.5 * (rand(size(this.sigma_a)) - 0.5));
+            this.gamma_0   = this.gamma .* (1 + 0.5 * (rand(size(this.gamma)) - 0.5));
             
             this.load{1} = this.fem.asseml(this.source{1}(this.fem.Qnodes(1, :), this.fem.Qnodes(2, :)));
             this.load{2} = this.fem.asseml(this.source{2}(this.fem.Qnodes(2, :), this.fem.Qnodes(2, :)));
@@ -136,9 +136,9 @@ classdef opt6 < handle
             
             g{1} = this.gamma_local .* ...
                 (...
-                this.fem.assemnode(tmp{1}, this.sols{1}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) - ... 
+                this.fem.assemnode(tmp{1}, this.sols_local{1}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) - ... 
                 this.sols_local{1} .* (this.Mass * (this.data{1} - this.data_local{1})) + ...
-                this.fem.assemnode(tmp{2}, this.sols{2}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) - ...
+                this.fem.assemnode(tmp{2}, this.sols_local{2}, -1/3./sigma_t./sigma_t, ones(size(sigma_t))) - ...
                 this.sols_local{2} .* (this.Mass * (this.data{2} - this.data_local{2})) ...
                 ) + this.alpha{1} * h{1}; 
             g{2} = - (this.sigma_a_local .* this.sols{1}) .* (this.Mass * (this.data{1} - this.data_local{1})) - ...

@@ -63,8 +63,8 @@ u = DSA\load;
 % add some noise
 u = u .* (1 + 0.01 * 2 * (rand(size(u)) - 0.5));
 
-options = optimoptions('fminunc','Display','off','Algorithm',...
-    'quasi-newton', 'HessUpdate', 'bfgs', 'GradObj','On', 'MaxIter', 3000, 'TolFun',...
+options = optimoptions('fminunc','Display','iter','Algorithm',...
+    'quasi-newton', 'HessUpdate', 'bfgs', 'GradObj','On', 'MaxIter', 100, 'TolFun',...
     1e-12, 'TolX',1e-16,'MaxFunEvals', 1e5, 'DerivativeCheck', 'Off');
 
 problem.options = options;
@@ -120,7 +120,8 @@ sigma_rate(counter) = norm(sigma_a_ - sigma_a)/norm(sigma_a);
 counter = counter + 1;
 
 tmp = T\(M * (u - v));
-g = fem.assemelem(tmp, u, -1/3./sigma_t_./sigma_t_, ones(size(sigma_t_))) + alpha * h;
+
+g = fem.assemelem(tmp, v, -1/3./sigma_t_./sigma_t_, ones(size(sigma_t_))) + alpha * h;
 
 
 end

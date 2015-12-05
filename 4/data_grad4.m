@@ -16,7 +16,7 @@ tmp = T\(sigma_a_ .* (M * (u1 - mv)));
 
 [~, h] = reg4(sigma_a_);
 
-g = fem.assemnode(tmp, u, -1/3./sigma_t_./sigma_t_, ones(size(sigma_t_))) + ...
+g = fem.assemnode(tmp, v, -1/3./sigma_t_./sigma_t_, ones(size(sigma_t_))) + ...
     -v .* (M * (u1 - mv))+ alpha * h;
 
 end

@@ -124,8 +124,8 @@ v1 = sigma_ret .* v1 .* Gamma_ret;
 v2 = sigma_ret .* v2 .* Gamma_ret;
 
 fprintf('Relateive L2 error of u are %6.2f, %6.2f \n',...
-    norm(u1 - v1, infty)/norm(u1, infty),...
-    norm(u2 - v2, infty)/norm(u2, infty));
+    norm(u1 - v1, inf)/norm(u1, inf),...
+    norm(u2 - v2, inf)/norm(u2, inf));
 
 figure(1);
 plot(sigma_rate);
